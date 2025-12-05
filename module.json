@@ -14,7 +14,8 @@
     }
   ],
   "scripts": [
-  "scripts/knockout.js"],
+  "scripts/knockout.js",
+    "scripts/portrait.js"],
   "url": "https://github.com/KuriGohan-004/MutantsAndMasterminds3eAddit",
   "manifest": "https://github.com/KuriGohan-004/MutantsAndMasterminds3eAddit/blob/main/module.json",
   "download": "https://github.com/KuriGohan-004/MutantsAndMasterminds3eAddit/archive/refs/heads/main.zip",
