@@ -1,26 +1,36 @@
-Hooks.on("updateToken", async (tokenDoc, changes, options, userId) => {
-  // Only run if token effects changed
+const MODULE_ID = "mnm-3e-addit";
+const STATUS_NAME = "Incapacitated";
+const TINT_COLOR = "#ff0000";
+
+Hooks.once("init", () => {
+  // Register module setting
+  game.settings.register(MODULE_ID, "enableIncapTint", {
+    name: "Enable Incapacitated Token Tinting",
+    hint: "If enabled, tokens with the Incapacitated status will be tinted red.",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true
+  });
+});
+
+Hooks.on("updateToken", async (tokenDoc, changes) => {
+  // Only run if the effects list changed
   if (!("effects" in changes)) return;
 
-  const token = tokenDoc.object;
-  if (!token) return;
+  // If feature is disabled, do nothing
+  if (!game.settings.get(MODULE_ID, "enableIncapTint")) return;
 
-  // Name of the status we're checking
-  const STATUS_NAME = "Incapacitated";
-
-  // Get current active effects on the token
   const effects = tokenDoc.effects.map(e => e.toLowerCase());
 
-  // Check if incapacitated is currently active
   const isIncapacitated =
     effects.some(e => e.includes(STATUS_NAME.toLowerCase()));
 
-  // Apply or remove tint
+  // Apply tint if incapacitated
   if (isIncapacitated) {
-    // Make token red
-    await tokenDoc.update({ tint: "#ff0000" });
+    await tokenDoc.update({ tint: TINT_COLOR });
   } else {
-    // Clear tint
+    // Remove tint if not
     await tokenDoc.update({ tint: null });
   }
 });
