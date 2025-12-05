@@ -1,11 +1,11 @@
 {
-  "id": "mnm3e-addit",
+  "id": "mnm-3e-addit",
   "title": "MnM 3e Addit",
   "description": "Mutants and Masterminds general tweaks.",
   "version": "1.0.0",
   "compatibility": {
-    "minimum": "11",
-    "verified": "11"
+    "minimum": "13",
+    "verified": "13"
   },
   "authors": [
     {
@@ -14,8 +14,7 @@
     }
   ],
   "scripts": [
-  "scripts/knockout.js",
-  "scripts/autoroller.js"],
+  "scripts/knockout.js"],
   "url": "https://github.com/KuriGohan-004/MutantsAndMasterminds3eAddit",
   "manifest": "https://github.com/KuriGohan-004/MutantsAndMasterminds3eAddit/blob/main/module.json",
   "download": "https://github.com/KuriGohan-004/MutantsAndMasterminds3eAddit/archive/refs/heads/main.zip",
