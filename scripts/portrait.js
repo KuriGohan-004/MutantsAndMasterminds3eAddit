@@ -1,113 +1,69 @@
-/**
- * mnm-3e-addit — Character Portrait Overlay (percentage-based + size setting)
- */
-
 const MODULE_ID = "mnm-3e-addit";
+let overlayEl = null;
 
-/* ---------------------------------------- */
-/* SETTINGS                                 */
-/* ---------------------------------------- */
+/* ---------------------------- */
+/* SETTINGS                     */
+/* ---------------------------- */
 
 Hooks.once("init", () => {
 
-  // Enable / disable (GM)
   game.settings.register(MODULE_ID, "portraitEnabled", {
     name: "Enable Character Portrait Overlay",
+    hint: "Displays the assigned player character portrait on screen.",
     scope: "world",
     config: true,
     type: Boolean,
     default: true
   });
 
-  // Mode
   game.settings.register(MODULE_ID, "portraitMode", {
     name: "Portrait Mode",
+    hint: "Mode 1: token image if present else portrait. Mode 2: always portrait.",
     scope: "world",
     config: true,
     type: String,
     choices: {
-      "token-then-portrait": "Mode 1 — Token image if present, else portrait",
-      "portrait-only": "Mode 2 — Always portrait image"
+      "token-then-portrait": "Mode 1 — token then portrait",
+      "portrait-only": "Mode 2 — portrait only"
     },
     default: "token-then-portrait"
   });
 
-  // Size (%) of screen height
   game.settings.register(MODULE_ID, "portraitSize", {
-    name: "Portrait Size (percent of screen height)",
+    name: "Portrait Size (%)",
+    hint: "Height of portrait as % of screen height.",
     scope: "world",
     config: true,
     type: Number,
-    range: {
-      min: 5,
-      max: 30,
-      step: 1
-    },
+    range: { min: 5, max: 30, step: 1 },
     default: 12
   });
 
-  // Position X (% from left)
   game.settings.register(MODULE_ID, "portraitPosX", {
     name: "Portrait X Position (%)",
+    hint: "Horizontal position from left side.",
     scope: "world",
     config: true,
     type: Number,
-    range: {
-      min: 0,
-      max: 100,
-      step: 1
-    },
+    range: { min: 0, max: 100, step: 1 },
     default: 2
   });
 
-  // Position Y (% from bottom)
   game.settings.register(MODULE_ID, "portraitPosY", {
     name: "Portrait Y Position (%)",
+    hint: "Vertical position from bottom of screen.",
     scope: "world",
     config: true,
     type: Number,
-    range: {
-      min: 0,
-      max: 100,
-      step: 1
-    },
+    range: { min: 0, max: 100, step: 1 },
     default: 2
   });
+
 });
 
-
-/* ---------------------------------------- */
-/* UI HELPERS                               */
-/* ---------------------------------------- */
-
-let overlay = null;
-
-function ensureOverlay() {
-  if (overlay) return overlay;
-
-  overlay = document.createElement("div");
-  overlay.id = "mnm3e-portrait-overlay";
-  overlay.style.position = "fixed";
-  overlay.style.pointerEvents = "none";
-  overlay.style.overflow = "hidden";
-  overlay.style.display = "none";
-  overlay.style.borderRadius = "15px";
-  overlay.style.border = "4px solid #ffffff";
-  overlay.style.boxShadow = "0 0 8px #000";
-  overlay.style.zIndex = 999999;
-
-  document.body.appendChild(overlay);
-  return overlay;
-}
-
-function hideOverlay() {
-  if (overlay) overlay.style.display = "none";
-}
-
-
-/* ---------------------------------------- */
-/* IMAGE SOURCE LOGIC                        */
-/* ---------------------------------------- */
+/* ---------------------------- */
+/* HELPER FUNCTIONS             */
+/* ---------------------------- */
 
 function getPlayerActor() {
   return game.user?.character ?? null;
@@ -120,95 +76,72 @@ function getPortraitImage(actor) {
 function getTokenImage(actor) {
   if (!canvas?.tokens?.placeables) return null;
   const token = canvas.tokens.placeables.find(t => t.actor?.id === actor.id);
-  return token ? token.document.texture.src : null;
+  return token?.document.texture?.src ?? null;
 }
 
 function selectImage(actor) {
   const mode = game.settings.get(MODULE_ID, "portraitMode");
-
-  if (mode === "portrait-only") {
-    return getPortraitImage(actor);
-  }
-
-  const tokenImg = getTokenImage(actor);
-  return tokenImg || getPortraitImage(actor);
+  if (!actor) return null;
+  if (mode === "portrait-only") return getPortraitImage(actor);
+  return getTokenImage(actor) || getPortraitImage(actor);
 }
 
+function ensureOverlay() {
+  if (overlayEl) return overlayEl;
+  overlayEl = document.createElement("div");
+  overlayEl.id = "mnm3e-portrait-overlay";
+  overlayEl.style.position = "fixed";
+  overlayEl.style.pointerEvents = "none";
+  overlayEl.style.overflow = "hidden";
+  overlayEl.style.display = "none";
+  overlayEl.style.borderRadius = "15px";
+  overlayEl.style.border = "4px solid #fff";
+  overlayEl.style.boxShadow = "0 0 8px #000";
+  overlayEl.style.zIndex = 999999;
+  document.body.appendChild(overlayEl);
+  return overlayEl;
+}
 
-/* ---------------------------------------- */
-/* DRAW FUNCTION                             */
-/* ---------------------------------------- */
+function hideOverlay() {
+  if (overlayEl) overlayEl.style.display = "none";
+}
 
-function updatePortraitOverlay() {
-  // Gate - on/off
-  if (!game.settings.get(MODULE_ID, "portraitEnabled")) {
-    hideOverlay();
-    return;
-  }
+function updateOverlay() {
+  if (!game.settings.get(MODULE_ID, "portraitEnabled")) return hideOverlay();
 
-  // Must have a player actor
   const actor = getPlayerActor();
-  if (!actor) {
-    hideOverlay();
-    return;
-  }
+  if (!actor) return hideOverlay();
 
   const img = selectImage(actor);
-  if (!img) {
-    hideOverlay();
-    return;
-  }
+  if (!img) return hideOverlay();
 
-  // Read settings
   const sizePerc = game.settings.get(MODULE_ID, "portraitSize");
   const posX = game.settings.get(MODULE_ID, "portraitPosX");
   const posY = game.settings.get(MODULE_ID, "portraitPosY");
 
-  // Convert percentage to screen pixels
   const heightPx = window.innerHeight * (sizePerc / 100);
-  const widthPx = heightPx;  // square
+  const widthPx = heightPx;
+  const xPx = window.innerWidth * (posX / 100);
+  const yPx = window.innerHeight * (posY / 100);
 
-  const xPx = (window.innerWidth * (posX / 100));
-  const yPx = (window.innerHeight * (posY / 100));
-
-  // Player color border
   const color = game.user?.color ?? "#ffffff";
 
-  // Create element if needed
   const el = ensureOverlay();
   el.style.display = "block";
-
   el.style.width = `${widthPx}px`;
   el.style.height = `${heightPx}px`;
-
   el.style.left = `${xPx}px`;
   el.style.bottom = `${yPx}px`;
-
   el.style.border = `4px solid ${color}`;
   el.style.boxShadow = `0 0 10px ${color}77`;
-
-  el.innerHTML = `
-    <img src="${img}" style="
-      width:100%;
-      height:100%;
-      object-fit:cover;
-    " />
-  `;
+  el.innerHTML = `<img src="${img}" style="width:100%; height:100%; object-fit:cover;" />`;
 }
 
+/* ---------------------------- */
+/* HOOKS                       */
+/* ---------------------------- */
 
-/* ---------------------------------------- */
-/* HOOKS                                    */
-/* ---------------------------------------- */
-
-[
-  "ready",
-  "updateUser",
-  "updateActor",
-  "updateToken",
-  "canvasReady",
-  "updateScene",
-  "updateSetting"
-].forEach(hook => {
-  Hooks.on(hook, updatePortraitOverlay);
+// Always update when the world is ready, scene loads, tokens update, or settings change
+["ready", "canvasReady", "updateToken", "updateActor", "updateUser", "updateSetting"].forEach(hook => {
+  Hooks.on(hook, updateOverlay);
 });
