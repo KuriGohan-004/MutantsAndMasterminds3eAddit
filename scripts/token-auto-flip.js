@@ -1,51 +1,48 @@
-Hooks.on("ready", () => {
-  console.log("mnm-3e-addit | Auto token flipping ready.");
+Hooks.once("init", () => {
+  console.log("mnm-3e-addit | Registering Auto Token Flip setting");
+
+  // Register the module setting
+  game.settings.register("mnm-3e-addit", "autoFlipTokens", {
+    name: "Enable Auto Token Flip",
+    hint: "Automatically flip tokens horizontally based on movement or target position.",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true
+  });
 });
 
-/**
- * Whenever a token is updated (movement, targeting, etc), adjust flip state.
- */
-Hooks.on("updateToken", (scene, token, updateData) => {
+Hooks.on("updateToken", (scene, tokenDoc, updateData, options, userId) => {
+  // Check the setting
   if (!game.settings.get("mnm-3e-addit", "autoFlipTokens")) return;
 
-  const tokenDoc = scene.tokens.get(token._id);
-  if (!tokenDoc) return;
+  // Get the rendered token on the canvas
+  const token = canvas.tokens.get(tokenDoc._id);
+  if (!token) return;
 
-  // Determine the token's current rendered object
-  const t = canvas.tokens.get(token._id);
-  if (!t || !t.icon) return;
+  let scaleX = token.icon.scale.x || 1;
 
-  let scaleX = t.icon.scale.x;
-
-  // ------------------------
-  // 1. If token has a target, face the target
-  // ------------------------
-  const targets = t.actor?.targets ?? game.user.targets;
+  // 1️⃣ Check for target
+  const targets = token.actor?.targets ?? game.user.targets;
   const target = [...targets][0];
 
   if (target) {
     const targetX = target.x;
-    const tokenX = t.x;
+    const tokenX = token.x;
 
-    const shouldFlip = targetX > tokenX; // target to the right
-
-    t.icon.scale.x = shouldFlip ? Math.abs(scaleX) * -1 : Math.abs(scaleX);
+    token.icon.scale.x = targetX > tokenX ? -Math.abs(scaleX) : Math.abs(scaleX);
     return;
   }
 
-  // ------------------------
-  // 2. Otherwise, flip based on movement direction
-  // ------------------------
+  // 2️⃣ If no target, flip based on movement
   if (updateData.x !== undefined) {
-    const oldX = token.x;
+    const oldX = tokenDoc.x ?? token.x;
     const newX = updateData.x;
 
     if (newX > oldX) {
-      // moving right → flip
-      t.icon.scale.x = -Math.abs(scaleX);
+      token.icon.scale.x = -Math.abs(scaleX); // moving right → flip
     } else if (newX < oldX) {
-      // moving left → unflip
-      t.icon.scale.x = Math.abs(scaleX);
+      token.icon.scale.x = Math.abs(scaleX); // moving left → unflip
     }
   }
 });
