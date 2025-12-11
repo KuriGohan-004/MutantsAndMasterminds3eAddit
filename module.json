@@ -14,7 +14,8 @@
     }
   ],
   "scripts": [
-  "scripts/mnm-3e-addit-token-sorting.js"],
+  "scripts/mnm-3e-addit-token-sorting.js",
+    "scripts/token-auto-flip.js"],
   "url": "https://github.com/KuriGohan-004/MutantsAndMasterminds3eAddit",
   "manifest": "https://raw.githubusercontent.com/KuriGohan-004/MutantsAndMasterminds3eAddit/refs/heads/main/module.json",
   "download": "https://github.com/KuriGohan-004/MutantsAndMasterminds3eAddit/archive/refs/heads/main.zip",
