@@ -1,21 +1,49 @@
 Hooks.once("init", () => {
-  console.log("mnm-3e-addit | Token Y-sorting enabled");
+  console.log("mnm-3e-addit | Registering Auto Token Flip setting");
 
-  // Save a reference to the original sorting function
-  const originalSort = CONFIG.Canvas.objectClass.prototype._sortPlaceables;
+  // Register the module setting
+  game.settings.register("mnm-3e-addit", "autoFlipTokens", {
+    name: "Enable Auto Token Flip",
+    hint: "Automatically flip tokens horizontally based on movement or target position.",
+    scope: "world",       // saved globally
+    config: true,         // appears in Module Settings
+    type: Boolean,
+    default: true
+  });
+});
 
-  // Override with our custom sorting logic
-  CONFIG.Canvas.objectClass.prototype._sortPlaceables = function (...args) {
-    // Call the original function first
-    const result = originalSort.call(this, ...args);
+// Hook to automatically flip tokens when updated
+Hooks.on("updateToken", (scene, token, updateData) => {
+  // Make sure the setting exists and is enabled
+  if (!game.settings.get("mnm-3e-addit", "autoFlipTokens")) return;
 
-    // Then sort placeables by Y position (top-to-bottom)
-    this.placeables.sort((a, b) => {
-      const ay = a.y ?? a.document.y;
-      const by = b.y ?? b.document.y;
-      return ay - by;
-    });
+  const t = canvas.tokens.get(token._id);
+  if (!t) return;
 
-    return result;
-  };
+  let scaleX = t.icon.scale.x;
+
+  // 1️⃣ If the token has a target, face the target
+  const targets = t.actor?.targets ?? game.user.targets;
+  const target = [...targets][0];
+
+  if (target) {
+    const targetX = target.x;
+    const tokenX = t.x;
+
+    // Flip if target is to the right, otherwise unflip
+    t.icon.scale.x = targetX > tokenX ? -Math.abs(scaleX) : Math.abs(scaleX);
+    return;
+  }
+
+  // 2️⃣ Otherwise, flip based on movement direction
+  if (updateData.x !== undefined) {
+    const oldX = token.x;
+    const newX = updateData.x;
+
+    if (newX > oldX) {
+      t.icon.scale.x = -Math.abs(scaleX); // moving right → flip
+    } else if (newX < oldX) {
+      t.icon.scale.x = Math.abs(scaleX);  // moving left → unflip
+    }
+  }
 });
